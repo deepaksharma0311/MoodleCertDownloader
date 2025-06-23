@@ -25,23 +25,43 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Get the count of available certificates
+ * Get the count of available certificates, optionally filtered by company
  *
+ * @param int $companyid Company ID to filter by (0 for all companies)
  * @return int Number of certificates found
  */
-function local_bulkcertdownload_get_certificate_count() {
+function local_bulkcertdownload_get_certificate_count($companyid = 0) {
     global $DB;
     
     $count = 0;
     
+    // Build company user filter if needed
+    $companyuserids = array();
+    if (!empty($companyid)) {
+        $companyuserids = local_bulkcertdownload_get_company_user_ids($companyid);
+        if (empty($companyuserids)) {
+            return 0; // No users in company
+        }
+    }
+    
     // Check for mod_certificate
     if ($DB->get_manager()->table_exists('certificate_issues')) {
-        $count += $DB->count_records('certificate_issues');
+        if (!empty($companyuserids)) {
+            list($insql, $params) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED);
+            $count += $DB->count_records_select('certificate_issues', "userid $insql", $params);
+        } else {
+            $count += $DB->count_records('certificate_issues');
+        }
     }
     
     // Check for mod_customcert
     if ($DB->get_manager()->table_exists('customcert_issues')) {
-        $count += $DB->count_records('customcert_issues');
+        if (!empty($companyuserids)) {
+            list($insql, $params) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED);
+            $count += $DB->count_records_select('customcert_issues', "userid $insql", $params);
+        } else {
+            $count += $DB->count_records('customcert_issues');
+        }
     }
     
     return $count;
@@ -71,26 +91,46 @@ function local_bulkcertdownload_get_available_modules() {
 }
 
 /**
- * Get all certificate records from available modules
+ * Get all certificate records from available modules, optionally filtered by company
  *
+ * @param int $companyid Company ID to filter by (0 for all companies)
  * @return array Array of certificate records
  */
-function local_bulkcertdownload_get_all_certificates() {
+function local_bulkcertdownload_get_all_certificates($companyid = 0) {
     global $DB;
     
     $certificates = array();
+    
+    // Build company user filter if needed
+    $companyuserids = array();
+    $companyjoin = '';
+    $companywhere = '';
+    $companyparams = array();
+    
+    if (!empty($companyid)) {
+        $companyuserids = local_bulkcertdownload_get_company_user_ids($companyid);
+        if (empty($companyuserids)) {
+            return array(); // No users in company
+        }
+        list($insql, $companyparams) = $DB->get_in_or_equal($companyuserids, SQL_PARAMS_NAMED);
+        $companywhere = "AND u.id $insql";
+    }
     
     // Get certificates from mod_certificate
     if ($DB->get_manager()->table_exists('certificate_issues')) {
         $sql = "SELECT ci.id, ci.userid, ci.certificateid, ci.code, ci.timecreated,
                        c.name as certificatename, u.firstname, u.lastname, u.email,
+                       comp.name as companyname, comp.id as companyid,
                        'certificate' as moduletype
                 FROM {certificate_issues} ci
                 JOIN {certificate} c ON c.id = ci.certificateid
                 JOIN {user} u ON u.id = ci.userid
-                ORDER BY u.lastname, u.firstname";
+                LEFT JOIN {company_users} cu ON cu.userid = u.id
+                LEFT JOIN {company} comp ON comp.id = cu.companyid
+                WHERE u.deleted = 0 $companywhere
+                ORDER BY comp.name, u.lastname, u.firstname";
         
-        $certrecords = $DB->get_records_sql($sql);
+        $certrecords = $DB->get_records_sql($sql, $companyparams);
         $certificates = array_merge($certificates, $certrecords);
     }
     
@@ -98,13 +138,17 @@ function local_bulkcertdownload_get_all_certificates() {
     if ($DB->get_manager()->table_exists('customcert_issues')) {
         $sql = "SELECT ci.id, ci.userid, ci.customcertid as certificateid, ci.code, ci.timecreated,
                        c.name as certificatename, u.firstname, u.lastname, u.email,
+                       comp.name as companyname, comp.id as companyid,
                        'customcert' as moduletype
                 FROM {customcert_issues} ci
                 JOIN {customcert} c ON c.id = ci.customcertid
                 JOIN {user} u ON u.id = ci.userid
-                ORDER BY u.lastname, u.firstname";
+                LEFT JOIN {company_users} cu ON cu.userid = u.id
+                LEFT JOIN {company} comp ON comp.id = cu.companyid
+                WHERE u.deleted = 0 $companywhere
+                ORDER BY comp.name, u.lastname, u.firstname";
         
-        $customcertrecords = $DB->get_records_sql($sql);
+        $customcertrecords = $DB->get_records_sql($sql, $companyparams);
         $certificates = array_merge($certificates, $customcertrecords);
     }
     
@@ -254,6 +298,97 @@ function local_bulkcertdownload_create_fallback_certificate($cert) {
     $content .= "Email: " . $cert->email . "\n";
     
     return $content;
+}
+
+/**
+ * Get companies that the current user can access
+ *
+ * @return array Array of company objects
+ */
+function local_bulkcertdownload_get_user_companies() {
+    global $DB, $USER;
+    
+    // Check if IOMAD company tables exist
+    if (!$DB->get_manager()->table_exists('company')) {
+        return array();
+    }
+    
+    // If user is site admin, return all companies
+    if (is_siteadmin()) {
+        return $DB->get_records('company', null, 'name ASC');
+    }
+    
+    // Get companies where user is a company manager
+    $sql = "SELECT DISTINCT c.*
+            FROM {company} c
+            JOIN {company_users} cu ON cu.companyid = c.id
+            WHERE cu.userid = :userid
+            AND cu.managertype != 0
+            ORDER BY c.name ASC";
+    
+    return $DB->get_records_sql($sql, array('userid' => $USER->id));
+}
+
+/**
+ * Get company information by ID
+ *
+ * @param int $companyid Company ID
+ * @return stdClass|false Company object or false if not found
+ */
+function local_bulkcertdownload_get_company($companyid) {
+    global $DB;
+    
+    if (!$DB->get_manager()->table_exists('company')) {
+        return false;
+    }
+    
+    return $DB->get_record('company', array('id' => $companyid));
+}
+
+/**
+ * Get count of users in a company
+ *
+ * @param int $companyid Company ID
+ * @return int Number of users in the company
+ */
+function local_bulkcertdownload_get_company_user_count($companyid) {
+    global $DB;
+    
+    if (!$DB->get_manager()->table_exists('company_users')) {
+        return 0;
+    }
+    
+    return $DB->count_records_sql(
+        "SELECT COUNT(DISTINCT cu.userid)
+         FROM {company_users} cu
+         JOIN {user} u ON u.id = cu.userid
+         WHERE cu.companyid = :companyid
+         AND u.deleted = 0",
+        array('companyid' => $companyid)
+    );
+}
+
+/**
+ * Get user IDs for a specific company
+ *
+ * @param int $companyid Company ID
+ * @return array Array of user IDs
+ */
+function local_bulkcertdownload_get_company_user_ids($companyid) {
+    global $DB;
+    
+    if (!$DB->get_manager()->table_exists('company_users')) {
+        return array();
+    }
+    
+    $sql = "SELECT DISTINCT cu.userid
+            FROM {company_users} cu
+            JOIN {user} u ON u.id = cu.userid
+            WHERE cu.companyid = :companyid
+            AND u.deleted = 0";
+    
+    $records = $DB->get_records_sql($sql, array('companyid' => $companyid));
+    return array_keys($records);
 }
 
 /**

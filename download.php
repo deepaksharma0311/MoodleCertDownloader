@@ -25,10 +25,26 @@
 require_once('../../config.php');
 require_once('lib.php');
 
+// Check if IOMAD is installed
+if (!file_exists($CFG->dirroot . '/local/iomad/lib/iomad.php')) {
+    print_error('noiomad', 'local_bulkcertdownload');
+}
+
+require_once($CFG->dirroot . '/local/iomad/lib/iomad.php');
+
 // Require login and check capabilities
 require_login();
 $context = context_system::instance();
-require_capability('local/bulkcertdownload:download', $context);
+
+// Get company ID from form
+$companyid = optional_param('companyid', 0, PARAM_INT);
+
+// Check capabilities based on company selection
+if (!empty($companyid)) {
+    require_capability('local/bulkcertdownload:downloadcompany', $context);
+} else {
+    require_capability('local/bulkcertdownload:download', $context);
+}
 
 // Check sesskey
 require_sesskey();
@@ -48,8 +64,8 @@ try {
         throw new moodle_exception('errorzipfailed', 'local_bulkcertdownload');
     }
     
-    // Get all certificate files and add them to zip
-    $certificates = local_bulkcertdownload_get_all_certificates();
+    // Get all certificate files and add them to zip (filtered by company)
+    $certificates = local_bulkcertdownload_get_all_certificates($companyid);
     $addedcount = 0;
     
     foreach ($certificates as $cert) {

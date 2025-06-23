@@ -82,32 +82,45 @@
 </head>
 <body>
     <div class="container">
-        <h1>Bulk Certificate Download Plugin</h1>
+        <h1>IOMAD Bulk Certificate Download Plugin</h1>
         
         <div class="info-box">
             <h3>Plugin Overview</h3>
-            <p>This Moodle local plugin allows administrators to download all user certificates as a single ZIP archive. The plugin automatically detects available certificate modules and organizes downloads by module type and user.</p>
+            <p>This IOMAD-based Moodle local plugin allows company managers to download certificates for their company users as a single ZIP archive. The plugin integrates with IOMAD's multi-tenancy system to provide company-specific certificate management.</p>
         </div>
 
         <div class="stats">
-            <h3>Certificate Statistics</h3>
-            <p><strong>Total Certificates Found:</strong> 247 certificates</p>
+            <h3>Company Selection & Certificate Statistics</h3>
+            <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                <label for="company-select"><strong>Select Company:</strong></label>
+                <select id="company-select" style="margin-left: 10px; padding: 5px;">
+                    <option value="0">All Companies</option>
+                    <option value="1">Acme Corporation (89 certificates)</option>
+                    <option value="2" selected>TechFlow Solutions (76 certificates)</option>
+                    <option value="3">Global Learning Inc (82 certificates)</option>
+                </select>
+            </div>
+            <p><strong>Selected Company:</strong> TechFlow Solutions</p>
+            <p><strong>Company Users:</strong> 45 active users</p>
+            <p><strong>Certificates Found for Company:</strong> 76 certificates</p>
             <p><strong>Certificate Modules Detected:</strong></p>
             <ul class="module-list">
-                <li>Certificate (mod_certificate) - 156 certificates</li>
-                <li>Custom Certificate (mod_customcert) - 91 certificates</li>
+                <li>Certificate (mod_certificate) - 42 certificates</li>
+                <li>Custom Certificate (mod_customcert) - 34 certificates</li>
             </ul>
         </div>
 
         <div class="feature-list">
-            <h3>Plugin Features</h3>
+            <h3>IOMAD Integration Features</h3>
             <ul>
-                <li><strong>Bulk Download:</strong> Download all certificates in one ZIP file</li>
-                <li><strong>Organized Structure:</strong> Files organized by module type and user name</li>
+                <li><strong>Company-Based Filtering:</strong> Download certificates only for selected company users</li>
+                <li><strong>Multi-Tenancy Support:</strong> Full integration with IOMAD's company structure</li>
+                <li><strong>Role-Based Access:</strong> Company managers can access only their company data</li>
+                <li><strong>Bulk Download:</strong> Download all company certificates in one ZIP file</li>
+                <li><strong>Organized Structure:</strong> Files organized by company, module type, and user name</li>
                 <li><strong>Multiple Formats:</strong> Supports both mod_certificate and mod_customcert</li>
-                <li><strong>Security:</strong> Admin-only access with proper capability checks</li>
+                <li><strong>Security:</strong> Proper capability checks with company-level permissions</li>
                 <li><strong>Error Handling:</strong> Comprehensive error handling and user feedback</li>
-                <li><strong>Clean Filenames:</strong> Automatically generates safe filenames</li>
             </ul>
         </div>
 

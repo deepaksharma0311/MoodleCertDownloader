@@ -33,4 +33,13 @@ $capabilities = array(
             'manager' => CAP_ALLOW,
         ),
     ),
+    'local/bulkcertdownload:downloadcompany' => array(
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => array(
+            'companymanager' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ),
+    ),
 );

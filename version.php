@@ -24,8 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025062300;        // The current plugin version (Date: YYYYMMDDXX)
+$plugin->version   = 2025062301;        // The current plugin version (Date: YYYYMMDDXX)
 $plugin->requires  = 2020061500;        // Requires Moodle 3.9+
 $plugin->component = 'local_bulkcertdownload'; // Full name of the plugin (used for diagnostics)
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.0.0';
+$plugin->release   = '1.1.0';
+$plugin->dependencies = array(
+    'local_iomad' => 2020061500,  // Requires IOMAD
+);
