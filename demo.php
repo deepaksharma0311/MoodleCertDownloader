@@ -125,31 +125,35 @@
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="#" class="btn" onclick="simulateDownload()">Download All Certificates</a>
+            <a href="#" class="btn" onclick="simulateDownload()">Download Company Certificates</a>
         </div>
 
         <div class="file-structure">
-            <h4>ZIP Archive Structure Example:</h4>
-            <pre>certificates_2025-06-23_12-08-45.zip
+            <h4>ZIP Archive Structure Example (Company-Filtered):</h4>
+            <pre>TechFlow_Solutions_certificates_2025-06-23_12-08-45.zip
 ├── certificate/
-│   ├── Smith_John/
-│   │   └── Smith_John_Course_Completion_ABC123.pdf
-│   └── Doe_Jane/
-│       └── Doe_Jane_Advanced_Training_DEF456.pdf
+│   ├── Johnson_Sarah/
+│   │   ├── Johnson_Sarah_Safety_Training_TF001.pdf
+│   │   └── Johnson_Sarah_Leadership_Course_TF045.pdf
+│   └── Martinez_Carlos/
+│       └── Martinez_Carlos_Technical_Skills_TF023.pdf
 └── customcert/
-    ├── Wilson_Mary/
-    │   └── Wilson_Mary_Professional_Cert_GHI789.pdf
-    └── Brown_David/
-        └── Brown_David_Skills_Assessment_JKL012.pdf</pre>
+    ├── Williams_Emma/
+    │   └── Williams_Emma_Project_Management_TF067.pdf
+    └── Chen_David/
+        ├── Chen_David_Compliance_Training_TF089.pdf
+        └── Chen_David_Advanced_Analytics_TF102.pdf</pre>
         </div>
 
         <div class="info-box">
-            <h3>Installation Instructions</h3>
+            <h3>IOMAD Installation Instructions</h3>
             <ol>
+                <li><strong>Prerequisites:</strong> Ensure IOMAD is installed and configured</li>
                 <li>Place the plugin files in <code>/local/bulkcertdownload/</code></li>
                 <li>Visit Site Administration → Notifications to complete installation</li>
-                <li>Access the plugin at Site Administration → Users → Bulk Certificate Download</li>
-                <li>Ensure you have the capability <code>local/bulkcertdownload:download</code></li>
+                <li>Access via IOMAD Company Dashboard → Reports → Bulk Certificate Download</li>
+                <li>Assign capability <code>local/bulkcertdownload:downloadcompany</code> to company managers</li>
+                <li>Company managers can only see certificates for their assigned companies</li>
             </ol>
         </div>
 
@@ -173,8 +177,25 @@
 
     <script>
         function simulateDownload() {
-            alert('In a real Moodle environment, this would start downloading a ZIP file containing all user certificates organized by module type and user name.');
+            alert('In a real IOMAD environment, this would start downloading a ZIP file containing certificates for users from the selected company (TechFlow Solutions), organized by module type and user name.');
         }
+        
+        document.getElementById('company-select').addEventListener('change', function() {
+            var companySelect = this;
+            var selectedOption = companySelect.options[companySelect.selectedIndex];
+            var companyName = selectedOption.text.split(' (')[0];
+            
+            // Update the displayed company info
+            var companyInfo = document.querySelector('p:nth-of-type(4)'); // Selected Company paragraph
+            companyInfo.innerHTML = '<strong>Selected Company:</strong> ' + companyName;
+            
+            // Update certificate counts based on selection
+            var certificatesInfo = document.querySelector('p:nth-of-type(6)'); // Certificates Found paragraph
+            var count = selectedOption.text.match(/\((\d+) certificates\)/);
+            if (count) {
+                certificatesInfo.innerHTML = '<strong>Certificates Found for Company:</strong> ' + count[1] + ' certificates';
+            }
+        });
     </script>
 </body>
 </html>
